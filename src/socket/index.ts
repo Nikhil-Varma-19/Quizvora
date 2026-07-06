@@ -23,7 +23,7 @@ export const initializeSocket = (server: HttpServer) => {
 
 			const user = socket.data?.user;
 			
-			if (!user || !user.sessionId) {
+			if (!user) {
 				console.error("Invalid socket user, disconnecting:", socket.id);
 				socket.disconnect(true);
 				return;

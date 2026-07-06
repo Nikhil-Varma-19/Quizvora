@@ -9,7 +9,7 @@ export const isCodeExists = async (code: string): Promise<boolean> =>
 	Boolean(await db.Rooms.exists({ code }))
 
 
-export const createRoom = async (title: string, mode : ModePlay, user: IUserData | undefined | IGuestData, type: UserType | undefined): Promise<RoomType> => {
+export const createRoom = async (title: string, mode: ModePlay, user: IUserData | undefined | IGuestData, type: UserType | undefined): Promise<RoomType> => {
 	const session = await mongoose.startSession();
 
 	try {
@@ -22,7 +22,7 @@ export const createRoom = async (title: string, mode : ModePlay, user: IUserData
 
 		const code: string = await generateCode()
 
-		const [room]: [RoomType] = await db.Rooms.create([{ title, code, createdBy, createdByType,mode }], { session });
+		const [room]: [RoomType] = await db.Rooms.create([{ title, code, createdBy, createdByType, mode }], { session });
 
 		await db.RoomMembers.create([{
 			roomId: room._id,
@@ -98,12 +98,23 @@ export const getRoomMembers = async (roomId: string) => {
 		roomId: roomId,
 		isLeave: false
 	})
-	.select("score role participantId participantType -_id")
-	.populate({
+		.select("score role participantId participantType -_id")
+		.populate({
 			path: "participantId",
 			select: "name -_id",
-	 })
-		
+		})
+
 	return roomMemberList
 
+}
+
+export const roomByIdAndCreatrdBy = async (_id:string,createdBy?:string) => {
+	const room = await db.Rooms.findOne({
+		_id,
+		createdBy
+	})
+
+	if (!room) throw new NotFoundError("Room not found");
+
+	return room
 }

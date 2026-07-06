@@ -16,9 +16,10 @@ import {
   deleteQuestion,
 } from "../controllers/question.controller";
 
+router.use(checkAuth)
+
 router.post(
   "/:roomId",
-  checkAuth,
   validate(roomParamsSchema, "params"),
   validate(createQuizSchema, "body"),
   errorWrapper(createQuestionController),
@@ -26,14 +27,12 @@ router.post(
 
 router.get(
   "/:roomId",
-  checkAuth,
   validate(roomParamsSchema, "params"),
   errorWrapper(fetchQuestions),
 );
 
 router.patch(
   "/:roomId/:questionId",
-  checkAuth,
   validate(questionRouteParamsSchema, "params"),
   validate(questionSchema),
   errorWrapper(updateQuestion),
@@ -41,7 +40,6 @@ router.patch(
 
 router.delete(
   "/:roomId/:questionId",
-  checkAuth,
   validate(questionRouteParamsSchema, "params"),
   errorWrapper(deleteQuestion),
 );

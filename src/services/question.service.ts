@@ -1,7 +1,8 @@
 const db = require('../models/index');
-import { ModePlay, QuestionStatus, Role, SessionStatus, TypeQuestion, UserType } from "../utils/enums";
-import { NotFoundError, BadRequestError, InternalServerError } from "../utils/errors";
 import { IGuestData, IUserData } from "../utils/types";
+import { NotFoundError, BadRequestError, InternalServerError, ConflictError } from "../utils/errors";
+import { ModePlay, QuestionStatus, Role, SessionStatus, TypeQuestion, UserType } from "../utils/enums";
+import { roomByIdAndCreatrdBy } from "./room.service";
 
 export const createQuestion = async (body: any, user: IUserData | undefined | IGuestData, type: UserType | undefined, roomId: any) => {
 
@@ -22,15 +23,15 @@ export const createQuestion = async (body: any, user: IUserData | undefined | IG
 		throw new NotFoundError("Room is not in waiting state or not in predefined mode.");
 	};
 
-	const questionTexts  = body.questions.map((q : any) => q.question.trim())
+	const questionTexts = body.questions.map((q: any) => q.question.trim())
 
 	const existingQuestion = await db.Questions.find({
 		roomId,
-  text: { $in: questionTexts },
+		text: { $in: questionTexts },
 	}).select("text");
 
-	if(existingQuestion.length > 0){
-		throw new BadRequestError(`Duplicate question found: ${existingQuestion.map((q:any) => q.text).join(", ")} `)
+	if (existingQuestion.length > 0) {
+		throw new BadRequestError(`Duplicate question found: ${existingQuestion.map((q: any) => q.text).join(", ")} `)
 	}
 
 	const questions = body.questions.map((item: any, indx: number) => {
@@ -114,4 +115,31 @@ export const deleteQuestionByRoomAndId = async (roomId: any, questionId: any, us
 	if (deleteQuestion.deletedCount !== 1) throw new InternalServerError();
 
 	return deleteQuestion
+}
+
+export const createLiveQuestion = async (roomId: any, body: any, user: IUserData | undefined | IGuestData) => {
+	console.log(body)
+
+	const room  = await roomByIdAndCreatrdBy(roomId, user?._id.toString())
+
+	if(room.status !== SessionStatus.Running) throw new BadRequestError("Check the room status first.")
+
+	const questionCount = await db.Questions.countDocuments({roomId: roomId})
+
+	if(questionCount !== room.currentQuestionId) throw new ConflictError("Cannot post live question.")
+
+	const bodydata = {
+		roomId: roomId,
+		order: questionCount + 1,
+		text: body.question,
+		type: body.type,
+		options: body.options,
+		durationSeconds: body.durationSeconds || 30,
+		points: body.points || 1,
+	}
+
+	const result = await db.Questions.create(bodydata)
+
+	return result;
+	
 }

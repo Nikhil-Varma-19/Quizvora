@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import response from "../utils/response.helper";
-import { createQuestion, getQuestionsByRoomId, updateQuestionById, deleteQuestionByRoomAndId } from "../services/question.service";
+import { createQuestion, getQuestionsByRoomId, updateQuestionById, deleteQuestionByRoomAndId, createLiveQuestion } from "../services/question.service";
 
 export const createQuestionController = async (req: Request, res: Response) => {
 
@@ -31,7 +31,14 @@ export const deleteQuestion = async (req: Request, res: Response) => {
 
 	const result = await deleteQuestionByRoomAndId(roomId,questionId,req.user)
 
-	
 	return response.ok(res, { message : "Question delete sucessfully "})
+}
 
+export const postLiveQuestion = async (req: Request, res: Response) => {
+
+		const { roomId } = req.params
+
+		const result = await createLiveQuestion(roomId,req.body,req.user)
+
+		return response.created(res, { message: "Live Question Posted Successfully" })
 }
