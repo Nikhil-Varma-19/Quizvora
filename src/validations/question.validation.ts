@@ -16,7 +16,7 @@ const optionSchema = z.object({
 	isCorrect: z.boolean()
 })
 
-const mcqQuestionSchema = z.object({
+ export const mcqQuestionSchema = z.object({
   question: z
     .string()
     .min(3, "Question is required")

@@ -59,6 +59,10 @@ export const createQuestion = async (body: any, user: IUserData | undefined | IG
 
 	const result = await db.Questions.insertMany(questions);
 
+	const firstQuestion = result.find((q: any) => q.order === 1);
+
+	await db.Rooms.updateOne({ _id: roomId }, { $set: { currentQuestionId: firstQuestion._id } });
+
 	return result;
 }
 
@@ -118,15 +122,14 @@ export const deleteQuestionByRoomAndId = async (roomId: any, questionId: any, us
 }
 
 export const createLiveQuestion = async (roomId: any, body: any, user: IUserData | undefined | IGuestData) => {
-	console.log(body)
 
-	const room  = await roomByIdAndCreatrdBy(roomId, user?._id.toString())
+	const room = await roomByIdAndCreatrdBy(roomId, user?._id.toString())
 
-	if(room.status !== SessionStatus.Running) throw new BadRequestError("Check the room status first.")
+	if (room.status !== SessionStatus.Running) throw new BadRequestError("Check the room status first.")
 
-	const questionCount = await db.Questions.countDocuments({roomId: roomId})
+	const questionCount = await db.Questions.countDocuments({ roomId: roomId })
 
-	if(questionCount !== room.currentQuestionId) throw new ConflictError("Cannot post live question.")
+	if (questionCount !== room.currentQuestionId) throw new ConflictError("Cannot post live question.")
 
 	const bodydata = {
 		roomId: roomId,
@@ -141,5 +144,34 @@ export const createLiveQuestion = async (roomId: any, body: any, user: IUserData
 	const result = await db.Questions.create(bodydata)
 
 	return result;
-	
+
+}
+
+export const getCurrentQuestion = async (_id?: number, roomId?: string, order?: number) => {
+
+	const whereClause: any = {}
+
+	if (_id) whereClause._id = _id
+
+	if (roomId) whereClause.roomId = roomId
+
+	if (order) whereClause.order = order
+
+	const question = await db.Questions.findOne(whereClause).sort({ order: 1 }).select("order text type point durationSeconds options isComplete status");
+
+	return question;
+
+}
+
+
+export const getRoomCurrentQuestion = async (roomId: string, questionId: string) => {
+
+	const question = await db.Room.findOne({
+		currecurrentQuestionId: questionId,
+		_id: roomId,
+	})
+
+	if(!question) throw new BadRequestError("Question not found");
+
+	return true;
 }

@@ -62,11 +62,13 @@ const questionSchema = new Schema<IQuestion>(
       required: true,
       default: 30,
     },
+    // optional
     isComplete:{
       type: Boolean,
       required:true,
       default: false
     },
+    // optional
     status:{
       type: String,
       enum: Object.values(QuestionStatus),

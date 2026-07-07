@@ -68,8 +68,12 @@ export const joinRoomMember = async (code: string, user: sockertUserReq) => {
 
 	const alreadyJoined = await isParticipantAlreadyJoin(isRoomPresent._id, user._id);
 
-	if (alreadyJoined) throw new ConflictError("Already user joined the room.")
-
+	if (alreadyJoined) {
+		return {
+			roomId: alreadyJoined.roomId,
+			status: isRoomPresent.status
+		};
+	}
 	const roomMember = await db.RoomMembers.create({
 		roomId: isRoomPresent._id,
 		participantType: user.type,
@@ -108,7 +112,7 @@ export const getRoomMembers = async (roomId: string) => {
 
 }
 
-export const roomByIdAndCreatrdBy = async (_id:string,createdBy?:string) => {
+export const roomByIdAndCreatrdBy = async (_id: string, createdBy?: string) => {
 	const room = await db.Rooms.findOne({
 		_id,
 		createdBy
@@ -117,4 +121,56 @@ export const roomByIdAndCreatrdBy = async (_id:string,createdBy?:string) => {
 	if (!room) throw new NotFoundError("Room not found");
 
 	return room
+}
+
+export const changeStatusRoom = async (roomId: string, changeStatus: SessionStatus, whereStatus: SessionStatus, userId?: string, currentQuestionRequired?: boolean) => {
+	const whereClause: any = {
+		_id: roomId,
+		status: whereStatus
+	}
+	if (userId) whereClause.createdBy = userId
+	
+	const room = await db.Rooms.findOne(whereClause)
+
+	if (!room) throw new NotFoundError("Room not found or status is not valid");
+
+	if (currentQuestionRequired && !room.currentQuestionId) throw new NotFoundError("Current question is not set for the room");
+
+	room.status = changeStatus
+	await room.save()
+
+	return room;
+}
+
+
+export const getActiveRoomUser = async (userId: string, participantType: UserType) => {
+
+	const room = await db.RoomMembers.aggregate([
+		{
+			$match: {
+				participantId: userId,
+				participantType: participantType,
+				isLeave: false
+			}
+		}, {
+			$lookup: {
+				from: "rooms",
+				let: { roomId: "$roomId" },
+				pipeline: [
+					{
+						$match:{
+							$expr: { $eq : ["$_id", "$$roomId"] },
+							status: SessionStatus.Running
+						}
+					}
+				],
+				as: "room"
+			}
+		},{
+			$unwind: "$room"
+		}
+	])
+
+	return room[0] ?? null
+
 }

@@ -33,6 +33,13 @@ export default function registerRoomSocket(socket: Socket) {
 
         socket.join(room._id.toString());
 
+        const members = await getRoomMembers(room._id)
+
+        io.to(room._id.toString()).emit(
+        "player:list:update",
+        members
+        );
+
         callback(socketSuccess("Room created successfully", room));
       } catch (err: any) {
         callback(socketError("Error while creating the room"));
