@@ -6,10 +6,13 @@ dotenv.config();
 import connectWithRetry from "./config/db";
 import routes from "./routes/index";
 import createHttpError from "http-errors";
+import { redisConnection } from "./config/redis";
 
 app.use(express.json());
 
 connectWithRetry();
+redisConnection()
+
 
 
 app.use("/api", routes);

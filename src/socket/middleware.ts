@@ -3,8 +3,8 @@ import { findSessionAndExpireAt } from "../services/quest.service";
 import { findUserId } from "../services/user.service";
 import { UserType } from "../utils/enums";
 import { InternalServerError, UnauthorizedError } from "../utils/errors";
-import { socketGuestMap, socketUserMap } from "../utils/redis"
-import moment from "moment";
+import { redisGet } from "../utils/redis"
+
 
 export const socketAuthMiddleware = async (
 	socket: Socket,
@@ -17,7 +17,7 @@ export const socketAuthMiddleware = async (
 		// Guest
 		if (sessionId) {
 
-			if (socketGuestMap.has(sessionId))  return next(new InternalServerError("Already connection is there."))
+			if (await redisGet(`guest:${sessionId}`))  return next(new InternalServerError("Already connection is there."))
 
 
 			const guest = await findSessionAndExpireAt(sessionId)
@@ -33,7 +33,7 @@ export const socketAuthMiddleware = async (
 		}
 
 		if (userId) {
-			if (socketUserMap.has(userId)) return next(new InternalServerError("Already connection is there."))
+			if (await redisGet(`user:${userId}`)) return next(new InternalServerError("Already connection is there."))
 
 			const user = await findUserId(userId)
 

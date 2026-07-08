@@ -2,7 +2,7 @@ import { Server } from "socket.io";
 import { Server as HttpServer } from "http";
 import registerRoomSocket from "./room.socket";
 import { socketAuthMiddleware } from "./middleware";
-import { socketGuestMap, socketUserMap } from "../utils/redis";
+import { redisSet, redisDeleteKey } from "../utils/redis";
 import { SessionStatus, UserType } from "../utils/enums";
 import questionSocket from "./question.socket";
 import { getActiveRoomUser, getRoomMembers } from "../services/room.service";
@@ -32,9 +32,9 @@ export const initializeSocket = (server: HttpServer) => {
 				return;
 			}
 			if (user.type === UserType.Guest) {
-				socketGuestMap.set(user.sessionId, socket.id);
-			} else {
-				socketUserMap.set(user.sessionId, socket.id);
+				redisSet(`guest:${user.session}`,socket.id)
+			} else {	
+				redisSet(`user:${user._id}`, socket.id);
 			}
 
 			// register events 
@@ -74,9 +74,9 @@ export const initializeSocket = (server: HttpServer) => {
 				if (!user?.sessionId) return;
 
 				if (user.type === UserType.Guest) {
-					socketGuestMap.delete(user.sessionId);
+					redisDeleteKey(`guest:${user.sessionId}`)
 				} else {
-					socketUserMap.delete(user.sessionId);
+					redisDeleteKey(`user:${user._id}`)
 				}
 			});
 		} catch (err) {
