@@ -9,7 +9,8 @@ export interface IRoomMember extends Document {
   score: number;
   joinedAt: Date;
   isLeave: boolean;
-  leaveAt: Date
+  leaveAt: Date;
+  isOnline: boolean;
 }
 
 const roomMemberSchema = new Schema<IRoomMember>({
@@ -47,6 +48,10 @@ const roomMemberSchema = new Schema<IRoomMember>({
   },
   leaveAt:{
     type:Date,
+  },
+  isOnline: {
+    type: Boolean,
+    default: true,
   }
 });
 

@@ -164,6 +164,40 @@ export const getCurrentQuestion = async (_id?: number, roomId?: string, order?: 
 }
 
 
+// Admin-driven advance to the next predefined question. `live` mode questions
+// are authored one at a time via createLiveQuestion, so running out of a next
+// question there just means the admin hasn't created one yet - not the end of
+// the quiz. For `predefined` mode, every question is authored upfront, so
+// running out means the quiz is actually finished.
+export const advanceQuestion = async (roomId: string, userId: string) => {
+
+	const room = await db.Rooms.findOne({ _id: roomId, createdBy: userId, status: SessionStatus.Running });
+
+	if (!room) throw new NotFoundError("Room not found or quiz is not running");
+
+	const currentQuestion = await db.Questions.findOne({ _id: room.currentQuestionId, roomId });
+
+	if (!currentQuestion) throw new NotFoundError("Current question not found");
+
+	const nextQuestion = await db.Questions.findOne({ roomId, order: currentQuestion.order + 1 });
+
+	if (!nextQuestion) {
+		if (room.mode !== ModePlay.predefined) throw new BadRequestError("No next question created yet");
+
+		room.status = SessionStatus.Ended;
+		room.endedAt = new Date();
+		await room.save();
+
+		return { finished: true };
+	}
+
+	room.currentQuestionId = nextQuestion._id;
+	await room.save();
+
+	return { finished: false, question: nextQuestion };
+
+}
+
 export const getRoomCurrentQuestion = async (roomId: string, questionId: string) => {
 
 	const question = await db.Room.findOne({

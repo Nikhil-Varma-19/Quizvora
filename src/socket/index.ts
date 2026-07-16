@@ -5,10 +5,14 @@ import { socketAuthMiddleware } from "./middleware";
 import { redisSet, redisDeleteKey } from "../utils/redis";
 import { SessionStatus, UserType } from "../utils/enums";
 import questionSocket from "./question.socket";
-import { getActiveRoomUser, getRoomMembers } from "../services/room.service";
+import answerSocket from "./answer.socket";
+import { getActiveRoomUser, getRoomMembers, setMemberPresence, resetRoomMembersPresence } from "../services/room.service";
 import { getCurrentQuestion } from "../services/question.service";
 
 export let io: Server;
+
+const OFFLINE_GRACE_MS = 20000;
+const pendingOffline = new Map<string, NodeJS.Timeout>();
 
 export const initializeSocket = (server: HttpServer) => {
 	io = new Server(server, {
@@ -19,6 +23,8 @@ export const initializeSocket = (server: HttpServer) => {
 	});
 
 	io.use(socketAuthMiddleware);
+
+	resetRoomMembersPresence().catch((err) => console.error("Failed to reset room member presence:", err));
 
 	io.on("connection", async (socket) => {
 		try {
@@ -31,33 +37,45 @@ export const initializeSocket = (server: HttpServer) => {
 				socket.disconnect(true);
 				return;
 			}
+
 			if (user.type === UserType.Guest) {
-				redisSet(`guest:${user.session}`,socket.id)
-			} else {	
+				redisSet(`guest:${user.sessionId}`, socket.id)
+			} else {
 				redisSet(`user:${user._id}`, socket.id);
 			}
 
-			// register events 
+			// register events
 			registerRoomSocket(socket);
 			questionSocket(socket);
+			answerSocket(socket);
 
+			const presenceKey = `${user.type}:${user._id}`;
+
+			const pendingTimer = pendingOffline.get(presenceKey);
+			if (pendingTimer) {
+				clearTimeout(pendingTimer);
+				pendingOffline.delete(presenceKey);
+			}
 
 			const activeRoom = await getActiveRoomUser(user._id, user.type)
 
 			if (activeRoom) {
 				socket.join(activeRoom.roomId.toString());
+				socket.data.activeRoomId = activeRoom.roomId.toString();
+
+				await setMemberPresence(activeRoom.roomId, user._id, true);
 
 				const members = await getRoomMembers(activeRoom.roomId)
 
-				socket.emit("player:list:update", members);
+				io.to(activeRoom.roomId.toString()).emit("player:list:update", members);
 
 				if (activeRoom.status === SessionStatus.Running) {
-					socket.to(activeRoom.roomId.toString()).emit("quiz:started", { message: "Quiz started successfully", roomId: activeRoom.roomId.toString() });
+					socket.emit("quiz:started", { message: "Quiz started successfully", roomId: activeRoom.roomId.toString() });
 
-					const currentQuestion = await getCurrentQuestion(activeRoom.mode, activeRoom.currentQuestionId);
+					const currentQuestion = await getCurrentQuestion(activeRoom.currentQuestionId, activeRoom.roomId);
 
 					if (currentQuestion) {
-						socket.to(activeRoom.roomId.toString()).emit("question:show", { message: "Current question", question: currentQuestion });
+						socket.emit("question:show", { message: "Current question", question: currentQuestion });
 					}
 				}
 			}
@@ -71,12 +89,27 @@ export const initializeSocket = (server: HttpServer) => {
 			socket.on("disconnect", (reason) => {
 				console.log(`Socket Disconnected: ${socket.id}, reason: ${reason}`);
 
-				if (!user?.sessionId) return;
-
 				if (user.type === UserType.Guest) {
 					redisDeleteKey(`guest:${user.sessionId}`)
 				} else {
 					redisDeleteKey(`user:${user._id}`)
+				}
+
+				const roomId = socket.data.activeRoomId;
+
+				if (roomId) {
+					const timer = setTimeout(async () => {
+						pendingOffline.delete(presenceKey);
+						try {
+							await setMemberPresence(roomId, user._id, false);
+							const members = await getRoomMembers(roomId);
+							io.to(roomId).emit("player:list:update", members);
+						} catch (err) {
+							console.error("Failed to mark member offline:", err);
+						}
+					}, OFFLINE_GRACE_MS);
+
+					pendingOffline.set(presenceKey, timer);
 				}
 			});
 		} catch (err) {

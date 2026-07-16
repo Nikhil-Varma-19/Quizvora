@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
-import { ModePlay, SessionStatus, UserType } from "../utils/enums"
+import { ModePlay, ResultMode, SessionStatus, UserType } from "../utils/enums"
 
 export interface IRoom extends Document {
   code: string;
@@ -10,7 +10,8 @@ export interface IRoom extends Document {
   currentQuestionId?: Types.ObjectId;
   startedAt?: Date;
   endedAt?: Date;
-	mode: ModePlay
+	mode: ModePlay;
+	resultMode: ResultMode;
 }
 
 const roomSchema = new Schema<IRoom>(
@@ -37,6 +38,11 @@ const roomSchema = new Schema<IRoom>(
 		mode:{
 			type: String,
 			enum: Object.values(ModePlay),
+			required: true
+		},
+		resultMode:{
+			type: String,
+			enum: Object.values(ResultMode),
 			required: true
 		},
     status: {

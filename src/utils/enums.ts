@@ -20,6 +20,11 @@ export enum Role {
 	Member = "member"
 }
 
+export enum ResultMode {
+	PerQuestion = "perQuestion",
+	AtLast = "atLast"
+}
+
 export enum TypeQuestion {
 	Mcq = "mcq",
 	Written = "written"

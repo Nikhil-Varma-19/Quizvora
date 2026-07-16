@@ -1,4 +1,4 @@
-import { SessionStatus, UserType } from "./enums";
+import { ResultMode, SessionStatus, UserType } from "./enums";
 
 export type registerUserType = {
 	name: string;
@@ -10,7 +10,8 @@ export type createRoomType = {
 	_id:string;
 	title: string,
 	code: string,
-	status: SessionStatus
+	status: SessionStatus,
+	resultMode: ResultMode
 }
 
 export interface IdecodeToken {
