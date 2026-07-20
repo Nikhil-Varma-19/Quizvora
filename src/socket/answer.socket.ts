@@ -37,7 +37,7 @@ export default function answerSocket(socket: Socket) {
 				if (questionType === TypeQuestion.Mcq) {
 					const stats = await getMcqStats(body.questionId);
 
-					io.to(body.roomId).emit("question:stats", {
+					socket.emit("question:stats", {
 						questionId: body.questionId,
 						type: TypeQuestion.Mcq,
 						...stats,

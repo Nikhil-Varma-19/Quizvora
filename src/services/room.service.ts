@@ -143,7 +143,8 @@ export const joinRoomMember = async (code: string, user: sockertUserReq) => {
 
 		return {
 			roomId: alreadyJoined.roomId,
-			status: isRoomPresent.status
+			status: isRoomPresent.status,
+			questionId: isRoomPresent.currentQuestionId ?? null
 		};
 	}
 
@@ -156,7 +157,8 @@ export const joinRoomMember = async (code: string, user: sockertUserReq) => {
 
 	return {
 		roomId: roomMember.roomId,
-		status: isRoomPresent.status
+		status: isRoomPresent.status,
+		questionId: isRoomPresent.currentQuestionId ?? null
 	};
 }
 
@@ -268,7 +270,8 @@ export const getActiveRoomUser = async (userId: string, participantType: UserTyp
 			$match: {
 				participantId: userId,
 				participantType: participantType,
-				isLeave: false
+				isLeave: false,
+				role: Role.Admin
 			}
 		}, {
 			$lookup: {

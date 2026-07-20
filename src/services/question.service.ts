@@ -147,7 +147,7 @@ export const createLiveQuestion = async (roomId: any, body: any, user: IUserData
 
 }
 
-export const getCurrentQuestion = async (_id?: number, roomId?: string, order?: number) => {
+export const getCurrentQuestion = async (_id?: string, roomId?: string, order?: number) => {
 
 	const whereClause: any = {}
 
@@ -157,7 +157,11 @@ export const getCurrentQuestion = async (_id?: number, roomId?: string, order?: 
 
 	if (order) whereClause.order = order
 
-	const question = await db.Questions.findOne(whereClause).sort({ order: 1 }).select("order text type point durationSeconds options isComplete status");
+	const question = await db.Questions.findOne(whereClause).sort({ order: 1 }).select("order text type point durationSeconds options isComplete status").lean();
+
+	if (question) {
+		question.options = question.options?.map(({ isCorrect, ...option }: any) => option);
+	}
 
 	return question;
 

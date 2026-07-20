@@ -7,9 +7,10 @@ import {
 } from "../utils/types";
 import { socketError, socketSuccess } from "../utils/socketHelper";
 import { io } from "./index"
-import { ModePlay } from "../utils/enums";
+import { ModePlay, SessionStatus } from "../utils/enums";
 import { BadRequestError } from "../utils/errors";
 import { craeteRoom } from "../validations/socket.validation";
+import { getCurrentQuestion } from "../services/question.service";
 
 export default function registerRoomSocket(socket: Socket) {
 
@@ -77,7 +78,16 @@ export default function registerRoomSocket(socket: Socket) {
           success: true,
           message: "Joined room successfully",
           data: room,
-        });
+        })
+
+        if(room.status === SessionStatus.Running){
+          const question = await getCurrentQuestion(room.questionId,room.roomId);
+
+          if(!question) return; 
+
+          io.to(room.roomId.toString()).emit("question:show", { message: "Current question", question : question });
+
+        }
       } catch (err: any) {
         console.error("room:join failed:", err);
         callback({
