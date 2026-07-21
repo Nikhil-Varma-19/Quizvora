@@ -1,0 +1,77 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  /* Kahoot/Menti-style option accents - one distinct hue per tile. */
+  --color-option-a: #e21b3c;
+  --color-option-a-dark: #b3132d;
+  --color-option-b: #1368ce;
+  --color-option-b-dark: #0e4f9e;
+  --color-option-c: #d89e00;
+  --color-option-d: #26890c;
+  --color-option-d-dark: #1c6709;
+
+  --color-brand-from: #6d28d9;
+  --color-brand-via: #9333ea;
+  --color-brand-to: #ec4899;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-display);
+  background: #f6f5fb;
+  color: #17151f;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #0b0a10;
+    color: #f1eefc;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Utility used by the room-code badge and countdown numerals. */
+.font-mono-tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.25s ease-out;
+}
+
+@keyframes progress-grow {
+  from {
+    width: 0%;
+  }
+}
+
+.animate-progress-grow {
+  animation: progress-grow 0.6s ease-out;
+}

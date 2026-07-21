@@ -13,7 +13,8 @@ export const socketAuthMiddleware = async (
 	try {
 		const sessionId = socket.handshake.auth.sessionId || socket.handshake.query.sessionId;
 		const userId = socket.handshake.auth.userId || socket.handshake.query.userId;
-
+		console.log(socket.handshake.auth)
+		console.log("====",userId)
 		// Guest
 		if (sessionId) {
 
