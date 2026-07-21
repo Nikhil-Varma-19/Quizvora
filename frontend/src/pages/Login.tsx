@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LogIn } from 'lucide-react'
@@ -10,15 +10,22 @@ import { Alert } from '../components/ui/Alert'
 import { NavBar } from '../components/NavBar'
 import { Footer } from '../components/Footer'
 import { loginUser, extractApiErrorMessage } from '../lib/api'
+import { connectSocket } from '../lib/socket'
 import { useAuthStore } from '../store/authStore'
 
 export function Login() {
   const navigate = useNavigate()
   const setUserIdentity = useAuthStore((s) => s.setUserIdentity)
+  const isLogin = useAuthStore((s) => s.isAuthenticated)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if(isLogin) navigate("/")
+  }, [])
+  
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -27,6 +34,11 @@ export function Login() {
     try {
       const data = await loginUser({ email, password })
       setUserIdentity({ token: data.token, userId: data.userId, email: data.email, name: data.name })
+      // setUserIdentity() resets the socket to pick up the new auth payload,
+      // so reconnect explicitly right away instead of waiting on
+      // SocketProvider's effect - the very next screen (host dashboard, or
+      // join) emits over this socket almost immediately.
+      connectSocket()
       navigate('/host')
     } catch (err) {
       setError(extractApiErrorMessage(err, 'Could not log in. Please check your credentials.'))

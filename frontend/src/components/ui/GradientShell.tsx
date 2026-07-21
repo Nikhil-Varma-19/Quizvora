@@ -5,7 +5,7 @@ export function GradientShell({ children, className }: { children: ReactNode; cl
   return (
     <div
       className={clsx(
-        'relative flex min-h-screen w-full flex-col items-center overflow-hidden bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 px-4 py-10',
+        'relative flex min-h-screen w-full flex-col items-center overflow-hidden bg-linear-to-br from-violet-50 via-white to-fuchsia-50 px-4 py-10',
         'dark:from-[#0b0a10] dark:via-[#100e18] dark:to-[#140b1f]',
         className,
       )}

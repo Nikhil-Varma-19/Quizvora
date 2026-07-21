@@ -40,7 +40,7 @@ export function OptionTile({ index, text, selected, revealCorrect, isCorrect, cl
       {...rest}
     >
       <Icon className="shrink-0 fill-white/90" size={28} />
-      <span className="break-words">{text}</span>
+      <span className="wrap-break-word">{text}</span>
       {revealCorrect && isCorrect && (
         <span className="ml-auto shrink-0 rounded-full bg-white/25 px-2 py-1 text-xs uppercase tracking-wide">
           Correct

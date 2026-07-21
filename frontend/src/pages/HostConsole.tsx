@@ -1,20 +1,23 @@
 import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, MessageSquareText, Power, Users } from 'lucide-react'
+import { CheckCircle2, ChevronRight, MessageSquareText, Power, Send, Users } from 'lucide-react'
 import { GradientShell } from '../components/ui/GradientShell'
 import { Card, CardBody } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { Alert } from '../components/ui/Alert'
+import { Input } from '../components/ui/Input'
 import { NavBar } from '../components/NavBar'
 import { Footer } from '../components/Footer'
 import { OptionTile } from '../components/OptionTile'
+import { McqStatsPanel } from '../components/McqStatsPanel'
 import { WrittenAnswerFeed } from '../components/WrittenAnswerFeed'
 import { LiveQuestionComposer } from '../components/LiveQuestionComposer'
 import { emitWithAck } from '../lib/socket'
 import { createLiveQuestion, extractApiErrorMessage } from '../lib/api'
 import { useGameStore } from '../store/gameStore'
-import type { QuestionInput } from '../types'
+import type { AnswerSubmitAckData, QuestionInput } from '../types'
 
 export function HostConsole() {
   const navigate = useNavigate()
@@ -25,12 +28,77 @@ export function HostConsole() {
   const currentQuestion = useGameStore((s) => s.currentQuestion)
   const members = useGameStore((s) => s.members)
   const writtenStats = useGameStore((s) => s.writtenStats)
+  const hasAnsweredCurrent = useGameStore((s) => s.hasAnsweredCurrent)
+  const lastAnswerResult = useGameStore((s) => s.lastAnswerResult)
+  const myMcqStats = useGameStore((s) => s.myMcqStats)
+  const setAnswered = useGameStore((s) => s.setAnswered)
 
   const [error, setError] = useState<string | null>(null)
   const [isAdvancing, setIsAdvancing] = useState(false)
   const [isEnding, setIsEnding] = useState(false)
   const [isComposing, setIsComposing] = useState(false)
   const [composeMessage, setComposeMessage] = useState<string | null>(null)
+
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
+  const [writtenAnswer, setWrittenAnswer] = useState('')
+  const [answerError, setAnswerError] = useState<string | null>(null)
+  const [isAnswering, setIsAnswering] = useState(false)
+
+  useEffect(() => {
+    setSelectedOptionId(null)
+    setWrittenAnswer('')
+    setAnswerError(null)
+  }, [currentQuestion?._id])
+
+  async function submitOption(optionId: string) {
+    if (!roomId || !currentQuestion || hasAnsweredCurrent || isAnswering) return
+    setSelectedOptionId(optionId)
+    setAnswerError(null)
+    setIsAnswering(true)
+    try {
+      const ack = await emitWithAck<
+        { roomId: string; questionId: string; optionId: string },
+        AnswerSubmitAckData
+      >('answer:submit', { roomId, questionId: currentQuestion._id, optionId })
+
+      if (!ack.success || !ack.data) {
+        setAnswerError(ack.message || 'Could not submit your answer.')
+        return
+      }
+      setAnswered(ack.data)
+    } catch (err) {
+      setAnswerError(err instanceof Error ? err.message : 'Could not submit your answer.')
+    } finally {
+      setIsAnswering(false)
+    }
+  }
+
+  async function submitWrittenAnswer(e: FormEvent) {
+    e.preventDefault()
+    if (!roomId || !currentQuestion || hasAnsweredCurrent) return
+    if (writtenAnswer.trim().length < 1) {
+      setAnswerError('Type an answer before submitting.')
+      return
+    }
+    setAnswerError(null)
+    setIsAnswering(true)
+    try {
+      const ack = await emitWithAck<
+        { roomId: string; questionId: string; answer: string },
+        AnswerSubmitAckData
+      >('answer:submit', { roomId, questionId: currentQuestion._id, answer: writtenAnswer.trim() })
+
+      if (!ack.success || !ack.data) {
+        setAnswerError(ack.message || 'Could not submit your answer.')
+        return
+      }
+      setAnswered(ack.data)
+    } catch (err) {
+      setAnswerError(err instanceof Error ? err.message : 'Could not submit your answer.')
+    } finally {
+      setIsAnswering(false)
+    }
+  }
 
   useEffect(() => {
     if (!roomId || !isHost) navigate('/')
@@ -110,20 +178,66 @@ export function HostConsole() {
                   {currentQuestion.text}
                 </h1>
 
+                {answerError && <Alert tone="error">{answerError}</Alert>}
+
                 {currentQuestion.type === 'mcq' && currentQuestion.options && (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {currentQuestion.options.map((opt, idx) => (
-                      <OptionTile key={opt._id} index={idx} text={opt.text} disabled />
-                    ))}
-                  </div>
+                  <>
+                    {!hasAnsweredCurrent ? (
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {currentQuestion.options.map((opt, idx) => (
+                          <OptionTile
+                            key={opt._id}
+                            index={idx}
+                            text={opt.text}
+                            selected={selectedOptionId === opt._id}
+                            disabled={isAnswering}
+                            onClick={() => submitOption(opt._id)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        <div
+                          className={
+                            lastAnswerResult?.isCorrect
+                              ? 'flex items-center gap-2 text-emerald-600 dark:text-emerald-400'
+                              : 'flex items-center gap-2 text-rose-600 dark:text-rose-400'
+                          }
+                        >
+                          <CheckCircle2 size={20} />
+                          <span className="font-semibold">
+                            {lastAnswerResult?.isCorrect
+                              ? `Correct! +${lastAnswerResult.pointsAwarded} pts`
+                              : 'Answer submitted - not quite right'}
+                          </span>
+                        </div>
+                        {myMcqStats && <McqStatsPanel stats={myMcqStats} />}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {currentQuestion.type === 'mcq' ? (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Live answer stats aren't shown to the host - each player sees their own breakdown after they answer.
-                  </p>
+                  !hasAnsweredCurrent && (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Pick an option to see how the room voted.
+                    </p>
+                  )
                 ) : (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-3">
+                    {!hasAnsweredCurrent && (
+                      <form onSubmit={submitWrittenAnswer} className="flex flex-col gap-3">
+                        <Input
+                          label="Your answer"
+                          value={writtenAnswer}
+                          onChange={(e) => setWrittenAnswer(e.target.value)}
+                          maxLength={100}
+                        />
+                        <Button type="submit" isLoading={isAnswering} fullWidth>
+                          <Send size={18} /> Submit answer
+                        </Button>
+                      </form>
+                    )}
                     <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       <MessageSquareText size={16} /> Live responses
                     </div>

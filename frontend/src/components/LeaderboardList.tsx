@@ -23,7 +23,7 @@ export function LeaderboardList({ members }: { members: RoomMember[] }) {
             <Card
               className={clsx(
                 'flex items-center gap-4 border-none px-5 py-3 shadow-md',
-                idx === 0 && 'bg-gradient-to-r from-amber-100 to-white dark:from-amber-500/20 dark:to-white/5',
+                idx === 0 && 'bg-linear-to-r from-amber-100 to-white dark:from-amber-500/20 dark:to-white/5',
               )}
             >
               <span className="w-8 shrink-0 text-center text-lg font-bold text-slate-500 dark:text-slate-400">

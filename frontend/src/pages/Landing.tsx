@@ -10,11 +10,10 @@ import { useAuthStore } from '../store/authStore'
 export function Landing() {
   const navigate = useNavigate()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const type = useAuthStore((s) => s.type)
 
   function handleHost() {
-    if (isAuthenticated && type === 'User') navigate('/host')
-    else navigate('/login')
+    if (isAuthenticated) navigate('/host')
+    else navigate('/join?intent=host')
   }
 
   return (

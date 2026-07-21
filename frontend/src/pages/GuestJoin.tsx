@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight, KeyRound, Smartphone } from 'lucide-react'
 import { GradientShell } from '../components/ui/GradientShell'
 import { Card, CardBody } from '../components/ui/Card'
@@ -17,6 +17,11 @@ import type { RoomJoinAckData } from '../types'
 
 export function GuestJoin() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // Landing's "Host a quiz" card routes here with ?intent=host when there's
+  // no identity yet - reuse this page's guest-name step, then continue on to
+  // hosting instead of showing the room-code join form.
+  const intent = searchParams.get('intent') === 'host' ? 'host' : 'join'
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const setGuestIdentity = useAuthStore((s) => s.setGuestIdentity)
   const setRoom = useGameStore((s) => s.setRoom)
@@ -25,6 +30,12 @@ export function GuestJoin() {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated && intent === 'host') navigate('/host')
+  }, [isAuthenticated, intent, navigate])
+
+  if (isAuthenticated && intent === 'host') return null
 
   async function handleCreateGuest(e: FormEvent) {
     e.preventDefault()
@@ -46,9 +57,7 @@ export function GuestJoin() {
     setIsSubmitting(true)
     try {
       await ensureConnected()
-      // Room codes are mixed-case and matched exactly server-side - do not
-      // normalize case here, that would break joining any code containing
-      // lowercase letters.
+      
       const trimmedCode = code.trim()
       const ack = await emitWithAck<{ code: string }, RoomJoinAckData>('room:join', {
         code: trimmedCode,
@@ -90,7 +99,9 @@ export function GuestJoin() {
                   </span>
                   <h1 className="text-2xl font-bold text-slate-900 dark:text-white">What's your name?</h1>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    This is how other players will see you on the leaderboard.
+                    {intent === 'host'
+                      ? "This is how you'll show up as the host - no account needed."
+                      : 'This is how other players will see you on the leaderboard.'}
                   </p>
                 </div>
                 <form onSubmit={handleCreateGuest} className="flex flex-col gap-4">
@@ -141,12 +152,12 @@ export function GuestJoin() {
               </>
             )}
 
-            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-              Hosting instead?{' '}
+           {!isAuthenticated &&  <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+              {intent === 'host' ? 'Have an account?' : 'Hosting instead?'}{' '}
               <Link to="/login" className="font-semibold text-violet-600 dark:text-violet-300">
                 Log in here
               </Link>
-            </p>
+            </p>}
           </CardBody>
         </Card>
       </div>

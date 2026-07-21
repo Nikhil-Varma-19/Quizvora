@@ -2,7 +2,6 @@ import { io, Socket } from 'socket.io-client'
 import { readPersistedAuth } from './storage'
 import type { SocketAck } from '../types'
 
-// Documented fallback for a non-proxied prod deploy. In dev, and in any prod
 // setup that fronts the API behind the same origin, this stays undefined and
 // socket.io-client simply connects to `window.location.origin`.
 const SOCKET_ORIGIN = (import.meta.env.VITE_API_ORIGIN_SOCKET as string | undefined) || undefined
@@ -12,8 +11,6 @@ let socket: Socket | null = null
 function buildAuthPayload(): Record<string, string> {
   const auth = readPersistedAuth()
 
-  // Mutually exclusive, mirroring the REST header rule: only one identity
-  // credential is ever sent, never both.
   if (auth.type === 'User' && auth.userId) {
     return { userId: auth.userId }
   }
@@ -29,7 +26,7 @@ export function getSocket(): Socket {
 
   socket = io(SOCKET_ORIGIN, {
     autoConnect: false,
-    auth: buildAuthPayload,
+    auth: buildAuthPayload(),
     // Bounded retry: the backend explicitly rejects a reconnect attempt if
     // the same identity still has a live connection registered in Redis, so
     // we must not hammer it forever - surface the failure instead.
@@ -67,10 +64,13 @@ export function ensureConnected(timeoutMs = 8000): Promise<Socket> {
       cleanup()
       resolve(s)
     }
+
     function onError(err: Error) {
+      console.log("Erooor",err)
       cleanup()
       reject(err)
     }
+    
     function cleanup() {
       clearTimeout(timer)
       s.off('connect', onConnect)

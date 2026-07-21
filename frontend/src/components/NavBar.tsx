@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { LogOut, Sparkles } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { Button } from './ui/Button'
 import { useAuthStore } from '../store/authStore'
 import { useGameStore } from '../store/gameStore'
+import logo from "../assets/quizvora-icon.svg"
 
 export function NavBar() {
   const navigate = useNavigate()
@@ -25,10 +26,7 @@ export function NavBar() {
         onClick={() => navigate('/')}
         className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-slate-900 dark:text-white"
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-600/30">
-          <Sparkles size={18} />
-        </span>
-        Quizvora
+      <img src={logo} alt="Quizvora" width={70} height={50}  />
       </button>
 
       {isAuthenticated && (

@@ -20,7 +20,7 @@ import type {
 // the same origin as the API, or fronted by a reverse proxy that does the
 // same job the Vite proxy does in dev.
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_BASE_URL,
 })
 
 // The backend's auth is mutually exclusive and header-based: a registered
