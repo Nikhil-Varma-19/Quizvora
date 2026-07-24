@@ -1,8 +1,10 @@
 import { Server } from "socket.io";
 import { Server as HttpServer } from "http";
+import { createAdapter } from "@socket.io/redis-adapter";
 import registerRoomSocket from "./room.socket";
 import { socketAuthMiddleware } from "./middleware";
 import { redisSet, redisDeleteKey } from "../utils/redis";
+import { createRedisPubSub } from "../config/redis";
 import { SessionStatus, UserType } from "../utils/enums";
 import questionSocket from "./question.socket";
 import answerSocket from "./answer.socket";
@@ -14,13 +16,19 @@ export let io: Server;
 const OFFLINE_GRACE_MS = 20000;
 const pendingOffline = new Map<string, NodeJS.Timeout>();
 
-export const initializeSocket = (server: HttpServer) => {
+export const initializeSocket = async (server: HttpServer) => {
 	io = new Server(server, {
 		cors: {
 			origin: "*",
 			credentials: true,
 		},
 	});
+
+	// Pub/sub adapter lets io.to(...).emit(...) reach sockets connected to
+	// other Node instances, not just this process - required to run more
+	// than one server instance behind a load balancer.
+	const { pubClient, subClient } = await createRedisPubSub();
+	io.adapter(createAdapter(pubClient, subClient));
 
 	io.use(socketAuthMiddleware);
 
