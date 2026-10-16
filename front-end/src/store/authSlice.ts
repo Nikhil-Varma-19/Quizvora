@@ -1,5 +1,10 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { loginUser, registerUser } from "../lib/api";
+import {
+  forgotPasswordRequest,
+  loginUser,
+  registerUser,
+  resetPasswordRequest,
+} from "../lib/api";
 import type { LoginPayload, LoginResponse, RegisterPayload } from "../lib/api";
 import { clearAuth, readAuth, saveAuth } from "../lib/auth";
 
@@ -51,6 +56,30 @@ export const register = createAsyncThunk<
   }
 });
 
+export const forgotPassword = createAsyncThunk<
+  void,
+  { email: string },
+  { rejectValue: string }
+>("auth/forgotPassword", async (payload, { rejectWithValue }) => {
+  try {
+    await forgotPasswordRequest(payload);
+  } catch (err) {
+    return rejectWithValue(messageOf(err, "Could not send reset link."));
+  }
+});
+
+export const resetPassword = createAsyncThunk<
+  void,
+  { token: string; password: string; confirmPassword: string },
+  { rejectValue: string }
+>("auth/resetPassword", async (payload, { rejectWithValue }) => {
+  try {
+    await resetPasswordRequest(payload);
+  } catch (err) {
+    return rejectWithValue(messageOf(err, "Could not reset password."));
+  }
+});
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -71,9 +100,12 @@ const authSlice = createSlice({
         state.user = payload;
         state.status = "idle";
       })
-      .addCase(register.fulfilled, (state) => {
-        state.status = "idle";
-      })
+      .addMatcher(
+        (action) => action.type.endsWith("/fulfilled") && action.type !== login.fulfilled.type,
+        (state) => {
+          state.status = "idle";
+        },
+      )
       .addMatcher(
         (action) => action.type.startsWith("auth/") && action.type.endsWith("/pending"),
         (state) => {

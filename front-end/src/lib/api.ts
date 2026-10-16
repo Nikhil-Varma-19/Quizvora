@@ -59,3 +59,12 @@ export const loginUser = (payload: LoginPayload) =>
 
 export const registerUser = (payload: RegisterPayload) =>
   post<{ name: string; email: string }>("/auth/register", payload);
+
+export const forgotPasswordRequest = (payload: { email: string }) =>
+  post<null>("/auth/forgot-password", payload);
+
+export const resetPasswordRequest = (payload: {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}) => post<null>("/auth/reset-password", payload);

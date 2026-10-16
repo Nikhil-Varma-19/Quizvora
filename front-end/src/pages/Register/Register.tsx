@@ -41,7 +41,7 @@ export default function Register() {
       register({ ...form, name: form.name.trim(), email: form.email.trim() }),
     );
     if (register.fulfilled.match(result)) {
-      navigate("/login", { state: { registered: true } });
+      navigate("/login", { state: { notice: "Account created! Sign in to continue." } });
     }
   }
 

@@ -11,8 +11,7 @@ import { clearError, login } from "../../store/authSlice";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const registered = (location.state as { registered?: boolean } | null)
-    ?.registered;
+  const notice = (location.state as { notice?: string } | null)?.notice;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,12 +42,7 @@ export default function Login() {
       subtitle="One account to host live games, join any room, and track all your quiz history and rankings."
     >
       <form className="auth-form" onSubmit={handleSubmit}>
-        {registered && (
-          <Alert
-            tone="success"
-            message="Account created! Sign in to continue."
-          />
-        )}
+        {notice && <Alert tone="success" message={notice} />}
         <TextField
           label="Email"
           icon="alternate_email"
