@@ -1,0 +1,299 @@
+/* Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined");
+
+/* Global Variables */
+:root {
+  /* Primary */
+  --primary: #440fd7;
+  --primary-container: #5d3bee;
+  --on-primary: #ffffff;
+  --primary-fixed: #e5deff;
+  --primary-fixed-dim: #c8bfff;
+  --on-primary-container: #ddd6ff;
+  --on-primary-fixed: #190064;
+  --on-primary-fixed-variant: #430ad6;
+  --inverse-primary: #c8bfff;
+
+  /* Secondary */
+  --secondary: #5c5b81;
+  --secondary-container: #d6d3ff;
+  --on-secondary: #ffffff;
+  --on-secondary-container: #5b597f;
+  --on-secondary-fixed: #181739;
+  --on-secondary-fixed-variant: #444367;
+  --secondary-fixed: #e2dfff;
+  --secondary-fixed-dim: #c5c2ee;
+
+  /* Tertiary */
+  --tertiary: #930036;
+  --tertiary-container: #bb164a;
+  --on-tertiary: #ffffff;
+  --on-tertiary-container: #ffcfd4;
+  --on-tertiary-fixed: #400013;
+  --on-tertiary-fixed-variant: #910035;
+  --tertiary-fixed: #ffd9dd;
+  --tertiary-fixed-dim: #ffb2bc;
+
+  /* Surface */
+  --surface: #fbf9f3;
+  --surface-bright: #fbf9f3;
+  --surface-dim: #dbdad4;
+  --surface-container: #f0eee8;
+  --surface-container-low: #f5f3ee;
+  --surface-container-high: #eae8e2;
+  --surface-container-highest: #e4e2dd;
+  --surface-container-lowest: #ffffff;
+  --surface-variant: #e4e2dd;
+  --background: #fbf9f3;
+  --on-background: #1b1c19;
+  --on-surface: #1b1c19;
+  --on-surface-variant: #484556;
+  --inverse-surface: #30312d;
+  --inverse-on-surface: #f2f1eb;
+  --surface-tint: #5b39ec;
+
+  /* Outline */
+  --outline: #787587;
+  --outline-variant: #c9c4d9;
+
+  /* Error */
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+  --on-error: #ffffff;
+  --on-error-container: #93000a;
+
+  /* Quizvora Game Colors */
+  --game-dark: #171638;
+  --game-card: #211f4d;
+  --game-card-hover: #252355;
+  --game-border: #33306e;
+  --game-pink: #ff4f79;
+  --game-yellow: #ffc123;
+  --game-teal: #14b8a6;
+  --game-purple: #5d3bee;
+
+  /* Typography */
+  --font-family: "Plus Jakarta Sans", sans-serif;
+  --font-material: "Material Symbols Outlined";
+
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+  --font-size-2xl: 28px;
+  --font-size-3xl: 40px;
+  --font-size-hero: 56px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Spacing */
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --gutter: 24px;
+  --gutter-sm: 16px;
+  --gutter-lg: 32px;
+  --margin: 32px;
+  --margin-desktop: 48px;
+  --margin-mobile: 16px;
+
+  /* Layout */
+  --container-max-width: 1280px;
+  --header-height: 80px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
+
+  /* Borders */
+  --border-width: 2px;
+  --border-color: #c9c4d9;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgb(0 0 0 / 4%);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 8%);
+  --shadow-lg: 0 12px 36px rgb(23 22 56 / 35%);
+  --shadow-button: 0 4px 0 #190064;
+  --shadow-arcade: 0 4px 0 #181739;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+}
+
+/* Global Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: var(--font-family);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Default Elements */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-bold);
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  list-style: none;
+}
+
+/* Accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--primary-fixed);
+  color: var(--on-surface);
+}
+
+/* Material Symbols */
+.material-symbols-outlined {
+  font-family: var(--font-material);
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  direction: ltr;
+  font-feature-settings: "liga";
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-container-low);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--outline);
+}
+
+/* Responsive Typography */
+@media (max-width: 768px) {
+  :root {
+    --font-size-hero: 36px;
+    --font-size-3xl: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --font-size-hero: 32px;
+    --font-size-2xl: 24px;
+  }
+}

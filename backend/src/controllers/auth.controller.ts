@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import response from "../utils/response.helper";
-import { login as loginService, registerUser } from "../services/user.service";
+import { login as loginService, registerUser, forgotPassword as forgotPasswordService, resetPassword as resetPasswordService } from "../services/user.service";
 
 
 export const login = async (req: Request, res: Response) => {
@@ -14,3 +14,15 @@ export const register = async (req: Request, res: Response) => {
 	 const result = await registerUser({ name, email, password });
 	return response.created(res, { message: "User registered successfully", data: { name: result.name, email: result.email } });
 }
+
+
+export const forgotPassword = async (req: Request, res: Response) => {
+	await forgotPasswordService(req.body.email);
+	return response.ok(res, { message: "If an account exists for this email, a password reset link has been sent" });
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+	const { token, password } = req.body;
+	await resetPasswordService(token, password);
+	return response.ok(res, { message: "Password reset successful" });
+};

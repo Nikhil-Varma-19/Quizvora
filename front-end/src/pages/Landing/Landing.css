@@ -1,0 +1,5 @@
+.landing {
+  width: 100%;
+  padding-top: var(--header-height);
+  background: var(--surface);
+}

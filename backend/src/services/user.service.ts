@@ -1,7 +1,13 @@
 const db = require('../models/index');
-import  { NotFoundError, ConflictError, InternalServerError}  from '../utils/errors';
+import  { NotFoundError, ConflictError, InternalServerError, BadRequestError }  from '../utils/errors';
 import { registerUserType } from '../utils/types';
 import jwt from "jsonwebtoken"
+import crypto from "crypto"
+import { sendMail } from "../utils/mailer"
+
+const RESET_TOKEN_TTL_MS = 10 * 60 * 1000;
+
+const hashToken = (token: string) => crypto.createHash("sha256").update(token).digest("hex");
 
 export const login = async (email: string, password: string) => {
 
@@ -63,3 +69,48 @@ export const findUserId = async(userId:string) => {
 
 }
 
+
+
+export const forgotPassword = async (email: string) => {
+	const user = await db.User.findOne({ email });
+	if (!user) return;
+
+	const token = crypto.randomBytes(32).toString("hex");
+	user.resetPasswordToken = hashToken(token);
+	user.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+	await user.save();
+
+	const frontendUrl = process.env.FRONTEND_URL;
+	if (!frontendUrl) throw new InternalServerError();
+	const link = `${frontendUrl}/reset-password?token=${token}`;
+
+	try {
+		await sendMail({
+			to: user.email,
+			subject: "Reset your Quizvora password",
+			html: `<p>Hi ${user.name},</p>
+<p>We received a request to reset your password. Click the link below to choose a new one. This link expires in 10 minutes.</p>
+<p><a href="${link}">Reset password</a></p>
+<p>If you didn't request this, you can ignore this email.</p>`,
+		});
+	} catch {
+		user.resetPasswordToken = undefined;
+		user.resetPasswordExpires = undefined;
+		await user.save();
+		throw new InternalServerError("Could not send reset email");
+	}
+};
+
+export const resetPassword = async (token: string, password: string) => {
+	const user = await db.User.findOne({
+		resetPasswordToken: hashToken(token),
+		resetPasswordExpires: { $gt: new Date() },
+	}).select("+resetPasswordToken +resetPasswordExpires");
+
+	if (!user) throw new BadRequestError("Reset link is invalid or has expired");
+
+	user.password = password; // hashed by the pre-save hook
+	user.resetPasswordToken = undefined;
+	user.resetPasswordExpires = undefined;
+	await user.save();
+};

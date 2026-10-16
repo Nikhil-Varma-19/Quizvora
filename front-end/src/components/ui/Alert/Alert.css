@@ -1,0 +1,22 @@
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.alert--error {
+  background: var(--error-container);
+  color: var(--on-error-container);
+}
+
+.alert--success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.alert .material-symbols-outlined {
+  font-size: 20px;
+}

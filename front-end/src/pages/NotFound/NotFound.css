@@ -1,0 +1,106 @@
+.not-found {
+  min-height: calc(100vh - var(--header-height));
+  padding: calc(var(--header-height) + 48px) var(--margin-mobile) 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.not-found__card {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 40px 24px;
+  text-align: center;
+  background: var(--surface-container-lowest);
+  border: 2px solid var(--on-secondary-fixed);
+  border-radius: var(--radius-xl);
+  box-shadow: 6px 6px 0 var(--on-secondary-fixed);
+}
+
+.not-found__code {
+  font-size: 96px;
+  font-weight: var(--font-weight-extrabold);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--primary-container);
+}
+
+.not-found__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: -0.025em;
+  color: var(--on-surface);
+}
+
+.not-found__text {
+  font-size: var(--font-size-lg);
+  line-height: 28px;
+  color: var(--on-surface-variant);
+}
+
+.not-found__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-md);
+  padding-top: var(--space-sm);
+}
+
+.not-found__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 14px 24px;
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-bold);
+  transition: background var(--transition-fast), transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.not-found__btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.not-found__btn--primary {
+  background: var(--primary-container);
+  color: var(--on-primary);
+  box-shadow: var(--shadow-button);
+}
+
+.not-found__btn--primary:hover {
+  background: var(--primary);
+}
+
+.not-found__btn--primary:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--on-primary-fixed);
+}
+
+.not-found__btn--secondary {
+  background: var(--surface-container);
+  color: var(--on-surface);
+  box-shadow: var(--shadow-arcade);
+}
+
+.not-found__btn--secondary:hover {
+  background: var(--surface-container-high);
+}
+
+.not-found__btn--secondary:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 var(--on-secondary-fixed);
+}
+
+@media (min-width: 640px) {
+  .not-found__card {
+    padding: 56px 48px;
+  }
+
+  .not-found__code {
+    font-size: 128px;
+  }
+}
