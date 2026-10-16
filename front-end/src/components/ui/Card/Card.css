@@ -1,0 +1,15 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--surface-container-lowest);
+  border: 2px solid var(--on-secondary-fixed);
+  border-radius: var(--radius-xl);
+  box-shadow: 4px 4px 0 var(--on-secondary-fixed);
+}
+
+.card--center {
+  align-items: center;
+  text-align: center;
+}

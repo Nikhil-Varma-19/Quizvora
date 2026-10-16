@@ -7,15 +7,15 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      'http://localhost:7000/api': {
-        target: 'http://localhost:7000',
+      'api': {
+        target: 'http://localhost:7000/api',
         changeOrigin: true,
       },
-      // '/socket.io': {
-      //   target: 'http://localhost:7000',
-      //   changeOrigin: true,
-      //   ws: true,
-      // },
+      '/socket.io': {
+        target: 'http://localhost:7000',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 })

@@ -78,3 +78,7 @@
   font-size: var(--font-size-sm);
   color: var(--error);
 }
+
+.field__input--plain {
+  padding-left: 16px;
+}

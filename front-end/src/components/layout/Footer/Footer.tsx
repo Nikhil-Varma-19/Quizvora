@@ -27,7 +27,7 @@ export default function Footer() {
 
         <nav className="footer__links">
           {links.map((link) => (
-            <Link key={link.to} to={"#"} className="footer__link">
+            <Link key={link.to} to={link.to} className="footer__link">
               {link.label}
             </Link>
           ))}

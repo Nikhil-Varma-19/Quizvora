@@ -6,6 +6,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loadingText?: string;
   subLabel?: string;
   icon?: string;
+  variant?: "primary" | "secondary" | "danger" | "ghost";
+  size?: "md" | "sm";
+  /** Full-width by default; pass false for inline buttons. */
+  block?: boolean;
   children: ReactNode;
 }
 
@@ -14,12 +18,26 @@ export default function Button({
   loadingText = "Please wait...",
   subLabel,
   icon,
+  variant = "primary",
+  size = "md",
+  block = true,
   children,
   disabled,
+  className = "",
   ...rest
 }: ButtonProps) {
+  const classes = [
+    "btn",
+    `btn--${variant}`,
+    size === "sm" ? "btn--sm" : "",
+    block ? "" : "btn--inline",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <button className="btn" disabled={disabled || loading} {...rest}>
+    <button className={classes} disabled={disabled || loading} {...rest}>
       {loading ? (
         <span className="btn__row">
           <span className="material-symbols-outlined btn__spin">sync</span>

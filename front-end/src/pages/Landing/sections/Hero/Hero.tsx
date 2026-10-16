@@ -90,7 +90,7 @@ export default function Hero() {
               </button>
             </div>
 
-            <Link to="/create-quiz" className="hero__create-btn">
+            <Link to="/host" className="hero__create-btn">
               <span>Create quiz</span>
               <span className="material-symbols-outlined">add_circle</span>
             </Link>

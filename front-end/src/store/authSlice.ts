@@ -6,6 +6,7 @@ import {
   resetPasswordRequest,
 } from "../lib/api";
 import type { LoginPayload, LoginResponse, RegisterPayload } from "../lib/api";
+import { resetSocket } from "../lib/socket";
 import { clearAuth, readAuth, saveAuth } from "../lib/auth";
 
 interface AuthState {
@@ -86,6 +87,7 @@ const authSlice = createSlice({
   reducers: {
     logout(state) {
       clearAuth();
+      resetSocket();
       state.user = null;
       state.error = null;
     },
@@ -97,6 +99,7 @@ const authSlice = createSlice({
     builder
       .addCase(login.fulfilled, (state, { payload }) => {
         saveAuth(payload);
+        resetSocket();
         state.user = payload;
         state.status = "idle";
       })

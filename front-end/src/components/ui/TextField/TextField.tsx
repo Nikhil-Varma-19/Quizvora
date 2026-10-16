@@ -3,8 +3,8 @@ import type { InputHTMLAttributes } from "react";
 import "./TextField.css";
 
 interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-  icon: string;
+  label?: string;
+  icon?: string;
   error?: string;
 }
 
@@ -19,16 +19,29 @@ export default function TextField({
   const [visible, setVisible] = useState(false);
   const isPassword = type === "password";
 
+  const inputClass = [
+    "field__input",
+    icon ? "" : "field__input--plain",
+    isPassword ? "field__input--has-toggle" : "",
+    error ? "field__input--error" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div className="field">
-      <label className="field__label" htmlFor={id}>
-        {label}
-      </label>
+      {label && (
+        <label className="field__label" htmlFor={id}>
+          {label}
+        </label>
+      )}
       <div className="field__control">
-        <span className="material-symbols-outlined field__icon">{icon}</span>
+        {icon && (
+          <span className="material-symbols-outlined field__icon">{icon}</span>
+        )}
         <input
           id={id}
-          className={`field__input${isPassword ? " field__input--has-toggle" : ""}${error ? " field__input--error" : ""}`}
+          className={inputClass}
           type={isPassword && visible ? "text" : type}
           aria-invalid={!!error}
           {...rest}

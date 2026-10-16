@@ -5,6 +5,7 @@ import { findUserId } from "../services/user.service";
 import { IdecodeToken, IUserData } from "../utils/types";
 import { openUrl, sessionRequired } from "../utils/openURL";
 import { findSessionAndExpireAt } from "../services/quest.service";
+import { redisGet } from "../utils/redis";
 import { UserType } from "../utils/enums";
 import { isMatch, isRouteMatch } from "../utils/matcher";
 
@@ -45,6 +46,10 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
 
     if (!secretKey) {
       return next(new InternalServerError());
+    }
+
+    if (await redisGet(`blacklist:${token}`)) {
+      return next(new UnauthorizedError("Session expired. Please login again."));
     }
 
     const decoded = jwt.verify(token, secretKey) as IdecodeToken;
