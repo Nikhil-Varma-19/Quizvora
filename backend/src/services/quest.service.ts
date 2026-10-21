@@ -6,7 +6,7 @@ const db = require('../models/index');
 
 export const findGuestBySessionId = async (sessionId: string) => await db.Guest.findOne({ sessionId })
 
-export const findSessionAndExpireAt = async (sessionId: string, expiresAt: Date | Moment = moment().add(6, "hours")) => {
+export const findSessionAndExpireAt = async (sessionId: string, expiresAt: Date | Moment = moment()) => {
 
 	const guest = await db.Guest.findOne({
 		sessionId,

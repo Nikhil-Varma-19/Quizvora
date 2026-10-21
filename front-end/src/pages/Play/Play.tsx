@@ -4,6 +4,7 @@ import AnswerPanel from "../../components/game/AnswerPanel";
 import Countdown from "../../components/game/Countdown";
 import Card from "../../components/ui/Card/Card";
 import Badge from "../../components/ui/Badge/Badge";
+import LeaveRoomButton from "../../components/game/LeaveRoomButton";
 import { useAppSelector } from "../../store";
 
 export default function Play() {
@@ -16,6 +17,10 @@ export default function Play() {
 
   return (
     <GameShell>
+      <div className="row">
+        <span />
+        <LeaveRoomButton />
+      </div>
       {!currentQuestion ? (
         <Card className="card--center">
           <h1 className="page-title">Get ready!</h1>

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 const db = require('../models/index');
 import { ModePlay, ResultMode, Role, SessionStatus, UserType } from "../utils/enums";
 import { generateCode } from "../utils/generateCode";
+import { closeQuestion } from "./answer.service";
 import { IGuestData, IUserData, RoomType, sockertUserReq } from "../utils/types";
 import { ConflictError, InternalServerError, NotFoundError } from '../utils/errors';
 
@@ -102,6 +103,9 @@ export const endRoom = async (roomId: string, userId: string) => {
 
 	if (!room) throw new NotFoundError("Room not found or already ended");
 
+	// The question on screen ends with the room: unanswered players are timed out on it.
+	if (room.status === SessionStatus.Running && room.currentQuestionId) await closeQuestion(roomId, room.currentQuestionId);
+
 	room.status = SessionStatus.Ended;
 	room.endedAt = new Date();
 	await room.save();
@@ -200,15 +204,44 @@ export const getRoomMembers = async (roomId: string) => {
 
 export const getRoomLeaderboard = async (roomId: string) => {
 
-	const leaderboard = await db.RoomMembers.find({ roomId })
-		.select("score role participantId participantType -_id")
+	const rows = await db.RoomMembers.find({ roomId })
+		.select("score role participantId participantType")
 		.sort({ score: -1 })
 		.populate({
 			path: "participantId",
-			select: "name -_id",
+			select: "name",
 		})
+		.lean()
 
-	return leaderboard
+	// Per-player totals; timed-out questions are listed but score 0.
+	const totals = await db.Answers.aggregate([
+		{ $match: { roomId: new mongoose.Types.ObjectId(roomId) } },
+		{
+			$group: {
+				_id: "$participantId",
+				answered: { $sum: { $cond: [{ $eq: ["$isTimedOut", true] }, 0, 1] } },
+				correct: { $sum: { $cond: ["$isCorrect", 1, 0] } },
+				timedOut: { $sum: { $cond: [{ $eq: ["$isTimedOut", true] }, 1, 0] } },
+			},
+		},
+	])
+
+	const byPlayer = new Map<string, any>(totals.map((t: any) => [t._id.toString(), t]))
+
+	// Ids are stripped from the response, like the rest of the member payloads.
+	return rows.map((r: any) => {
+		const t = byPlayer.get(r.participantId?._id?.toString())
+
+		return {
+			score: r.score,
+			role: r.role,
+			participantType: r.participantType,
+			participantId: { name: r.participantId?.name },
+			answered: t?.answered ?? 0,
+			correct: t?.correct ?? 0,
+			timedOut: t?.timedOut ?? 0,
+		}
+	})
 
 }
 
@@ -252,7 +285,7 @@ export const changeStatusRoom = async (roomId: string, changeStatus: SessionStat
 
 	if (!room) throw new NotFoundError("Room not found or status is not valid");
 
-	if (currentQuestionRequired && !room.currentQuestionId) throw new NotFoundError("Current question is not set for the room");
+	if (currentQuestionRequired && room.mode === ModePlay.predefined && !room.currentQuestionId) throw new NotFoundError("Current question is not set for the room");
 
 	room.status = changeStatus
 	await room.save()
@@ -270,9 +303,11 @@ export const getActiveRoomUser = async (userId: string, participantType: UserTyp
 			$match: {
 				participantId: userId,
 				participantType: participantType,
-				isLeave: false,
-				role: Role.Admin
+				isLeave: false
 			}
+		}, {
+			// If several rooms match, prefer the most recently joined.
+			$sort: { joinedAt: -1 }
 		}, {
 			$lookup: {
 				from: "rooms",
@@ -299,6 +334,7 @@ export const getActiveRoomUser = async (userId: string, participantType: UserTyp
 	// nests them under `row.room`. Flatten so callers work.
 	return {
 		roomId: row.roomId,
+		role: row.role,
 		status: row.room.status,
 		mode: row.room.mode,
 		currentQuestionId: row.room.currentQuestionId,

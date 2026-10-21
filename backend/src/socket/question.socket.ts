@@ -5,7 +5,7 @@ import { socketError, socketSuccess } from "../utils/socketHelper"
 import { BadRequestError, CustomError } from "../utils/errors";
 import { ModePlay, SessionStatus } from "../utils/enums";
 import { changeStatusRoom, getRoomLeaderboard } from "../services/room.service";
-import { getCurrentQuestion, advanceQuestion } from "../services/question.service";
+import { getCurrentQuestion, advanceQuestion, markQuestionStarted } from "../services/question.service";
 
 export default function questionSocket(socket: Socket) {
 
@@ -23,6 +23,8 @@ export default function questionSocket(socket: Socket) {
 			socket.to(roomId).emit("quiz:started", { message: "Quiz started successfully" , roomId: roomId.toString()});
 
 			if(room.mode === ModePlay.predefined){
+
+				await markQuestionStarted(room.currentQuestionId);
 
 				const currentQuestion = await getCurrentQuestion(room.currentQuestionId,room._id);
 
@@ -54,7 +56,10 @@ export default function questionSocket(socket: Socket) {
 
 				io.to(roomId).emit("quiz:ended", { message: "Quiz has ended", leaderboard });
 			} else {
-				io.to(roomId).emit("question:show", { message: "Next question", question: result.question });
+				// Re-read through getCurrentQuestion so options carry no `isCorrect` and the time left is included.
+				const question = await getCurrentQuestion(result.question._id, roomId);
+
+				io.to(roomId).emit("question:show", { message: "Next question", question });
 			}
 
 		} catch (error) {

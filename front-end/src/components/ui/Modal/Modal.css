@@ -1,0 +1,24 @@
+.modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 2 * var(--margin-mobile));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 20%);
+}
+
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.modal__title {
+  font-size: var(--font-size-xl);
+}

@@ -3,9 +3,9 @@ import { Server as HttpServer } from "http";
 import { createAdapter } from "@socket.io/redis-adapter";
 import registerRoomSocket from "./room.socket";
 import { socketAuthMiddleware } from "./middleware";
-import { redisSet, redisDeleteKey } from "../utils/redis";
+import { redisSet, redisGet, redisDeleteKey } from "../utils/redis";
 import { createRedisPubSub } from "../config/redis";
-import { SessionStatus, UserType } from "../utils/enums";
+import { Role, SessionStatus, UserType } from "../utils/enums";
 import questionSocket from "./question.socket";
 import answerSocket from "./answer.socket";
 import { getActiveRoomUser, getRoomMembers, setMemberPresence, resetRoomMembersPresence } from "../services/room.service";
@@ -69,6 +69,7 @@ export const initializeSocket = async (server: HttpServer) => {
 
 			if (activeRoom) {
 				socket.join(activeRoom.roomId.toString());
+				if (activeRoom.role === Role.Admin) socket.join(`${activeRoom.roomId.toString()}:admin`);
 				socket.data.activeRoomId = activeRoom.roomId.toString();
 
 				await setMemberPresence(activeRoom.roomId, user._id, true);
@@ -94,14 +95,17 @@ export const initializeSocket = async (server: HttpServer) => {
 			});
 
 			// disconnect cleanup
-			socket.on("disconnect", (reason) => {
+			socket.on("disconnect", async (reason) => {
 				console.log(`Socket Disconnected: ${socket.id}, reason: ${reason}`);
 
-				if (user.type === UserType.Guest) {
-					redisDeleteKey(`guest:${user.sessionId}`)
-				} else {
-					redisDeleteKey(`user:${user._id}`)
-				}
+				const connectionKey = user.type === UserType.Guest ? `guest:${user.sessionId}` : `user:${user._id}`;
+
+				// A newer connection (e.g. after a refresh) has taken over this identity -
+				// leave its key and presence alone.
+				const currentSocketId = await redisGet(connectionKey);
+				if (currentSocketId && currentSocketId !== socket.id) return;
+
+				await redisDeleteKey(connectionKey);
 
 				const roomId = socket.data.activeRoomId;
 

@@ -1,8 +1,10 @@
 import mongoose from "mongoose";
 const db = require('../models/index');
 import { sockertUserReq } from "../utils/types";
-import { SessionStatus, TypeQuestion } from "../utils/enums";
+import { Role, SessionStatus, TypeQuestion } from "../utils/enums";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors";
+
+const ANSWER_GRACE_MS = 2000;
 
 export const submitAnswer = async (
 	roomId: string,
@@ -27,6 +29,12 @@ export const submitAnswer = async (
 	const question = await db.Questions.findOne({ _id: questionId, roomId });
 
 	if (!question) throw new NotFoundError("Question not found");
+
+	// Answers are only accepted within the question's time limit (small grace for network lag).
+	if (question.startedAt && question.durationSeconds > 0) {
+		const deadline = new Date(question.startedAt).getTime() + question.durationSeconds * 1000 + ANSWER_GRACE_MS;
+		if (Date.now() > deadline) throw new BadRequestError("Time is up for this question");
+	}
 
 	const alreadyAnswered = await db.Answers.findOne({ questionId, participantId: user._id });
 
@@ -76,6 +84,37 @@ export const submitAnswer = async (
 
 }
 
+// Called when a question is finished: every player who did not answer gets a
+// timed-out record worth 0 points, so the leaderboard can show it.
+export const closeQuestion = async (roomId: any, questionId: any) => {
+
+	const members = await db.RoomMembers.find({ roomId, role: Role.Member, isLeave: false }).select("participantId participantType");
+
+	if (members.length === 0) return;
+
+	const answered = await db.Answers.find({ questionId }).select("participantId");
+
+	const answeredIds = new Set(answered.map((a: any) => a.participantId.toString()));
+
+	const missing = members.filter((m: any) => !answeredIds.has(m.participantId.toString()));
+
+	if (missing.length === 0) return;
+
+	await db.Answers.insertMany(
+		missing.map((m: any) => ({
+			roomId,
+			questionId,
+			participantId: m.participantId,
+			participantType: m.participantType,
+			isCorrect: false,
+			pointsAwarded: 0,
+			isTimedOut: true,
+		})),
+		{ ordered: false }
+	).catch(() => { /* a late real answer may already hold the slot */ });
+
+}
+
 export const getMcqStats = async (questionId: string) => {
 
 	const question = await db.Questions.findOne({ _id: questionId }).select("options");
@@ -83,7 +122,7 @@ export const getMcqStats = async (questionId: string) => {
 	if (!question) throw new NotFoundError("Question not found");
 
 	const counts = await db.Answers.aggregate([
-		{ $match: { questionId: new mongoose.Types.ObjectId(questionId) } },
+		{ $match: { questionId: new mongoose.Types.ObjectId(questionId), isTimedOut: { $ne: true } } },
 		{ $group: { _id: "$selectedOptionId", count: { $sum: 1 } } }
 	]);
 
@@ -107,7 +146,7 @@ export const getMcqStats = async (questionId: string) => {
 
 export const getWrittenAnswers = async (questionId: string) => {
 
-	const answers = await db.Answers.find({ questionId })
+	const answers = await db.Answers.find({ questionId, isTimedOut: { $ne: true } })
 		.select("participantId writtenAnswer submittedAt -_id")
 		.populate({
 			path: "participantId",

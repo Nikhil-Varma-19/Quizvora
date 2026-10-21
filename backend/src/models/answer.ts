@@ -10,6 +10,8 @@ export interface IAnswer extends Document {
   writtenAnswer?: string;
   isCorrect: boolean;
   pointsAwarded: number;
+  // True when the player never answered before the question closed.
+  isTimedOut: boolean;
   submittedAt: Date;
 }
 
@@ -49,6 +51,10 @@ const answerSchema = new Schema<IAnswer>(
       type: Number,
       default: 0,
       min: 0,
+    },
+    isTimedOut: {
+      type: Boolean,
+      default: false,
     },
     submittedAt: {
       type: Date,

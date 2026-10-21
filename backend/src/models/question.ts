@@ -15,6 +15,7 @@ export interface IQuestion extends Document {
   correctOptionId?: Types.ObjectId;
   points: number;
   durationSeconds: number;
+  startedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   isComplete: boolean,
@@ -60,7 +61,11 @@ const questionSchema = new Schema<IQuestion>(
     durationSeconds: {
       type: Number,
       required: true,
-      default: 30,
+      default: 60,
+    },
+    // Set when the question is shown to players; answers are rejected after the time limit.
+    startedAt: {
+      type: Date,
     },
     // optional
     isComplete:{

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router";
+import { Navigate, useLocation, useNavigate } from "react-router";
 import GameShell from "../../components/game/GameShell";
 import QuestionBuilder from "../../components/game/QuestionBuilder";
 import Card from "../../components/ui/Card/Card";
@@ -12,7 +12,7 @@ import { bulkCreateQuestions } from "../../lib/api";
 import { readGuest } from "../../lib/auth";
 import { emitWithAck, ensureConnected } from "../../lib/socket";
 import { useAppDispatch, useAppSelector } from "../../store";
-import { setRoom } from "../../store/gameSlice";
+import { resetGame, setRoom } from "../../store/gameSlice";
 import type {
   BulkQuestionCreatePayload,
   ModePlay,
@@ -25,11 +25,19 @@ export default function HostDashboard() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
-  const { roomId, mode, isHost } = useAppSelector((s) => s.game);
+  const { roomId, mode, isHost, title: roomTitle, resultMode: roomResultMode } =
+    useAppSelector((s) => s.game);
+  // Set when the host comes back from the question builder to change the basics.
+  const prefill = useLocation().state as {
+    title: string;
+    mode: ModePlay;
+    resultMode: ResultMode;
+  } | null;
 
-  const [title, setTitle] = useState("");
-  const [selectedMode, setSelectedMode] = useState<ModePlay>("predefined");
-  const [resultMode, setResultMode] = useState<ResultMode>("perQuestion");
+  const [title, setTitle] = useState(prefill?.title ?? "");
+  const [selectedMode, setSelectedMode] = useState<ModePlay>(prefill?.mode ?? "predefined");
+  const [resultMode, setResultMode] = useState<ResultMode>(prefill?.resultMode ?? "perQuestion");
+  const [goingBack, setGoingBack] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -72,6 +80,24 @@ export default function HostDashboard() {
     } finally {
       setCreating(false);
     }
+  }
+
+  // The room already exists on the server, so going back ends that draft room
+  // and returns to the form with the same values to edit.
+  async function handleBack() {
+    setGoingBack(true);
+    const values = {
+      title: roomTitle ?? title,
+      mode: "predefined" as ModePlay,
+      resultMode: roomResultMode ?? resultMode,
+    };
+    try {
+      await emitWithAck("room:end", { roomId });
+    } catch {
+      // Best effort - the draft room is abandoned either way.
+    }
+    dispatch(resetGame());
+    navigate("/host", { replace: true, state: values });
   }
 
   async function handleSaveQuestions(payload: BulkQuestionCreatePayload) {
@@ -140,6 +166,19 @@ export default function HostDashboard() {
         </Card>
       ) : (
         <>
+          <div className="row">
+            <Button
+              variant="ghost"
+              size="sm"
+              block={false}
+              icon="arrow_back"
+              loading={goingBack}
+              loadingText="Going back..."
+              onClick={handleBack}
+            >
+              Back to quiz details
+            </Button>
+          </div>
           <div className="page-head">
             <h1 className="page-title">Build your questions</h1>
             <p className="muted">

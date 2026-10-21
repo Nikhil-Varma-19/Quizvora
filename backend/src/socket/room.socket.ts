@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import { createRoom, joinRoomMember, getRoomMembers, setMemberPresence, leaveRoomMember, endRoom } from "../services/room.service";
+import { createRoom, joinRoomMember, getRoomMembers, setMemberPresence, leaveRoomMember, endRoom, getRoomLeaderboard } from "../services/room.service";
 import {
   RoomType,
   sockertUserReq,
@@ -29,6 +29,8 @@ export default function registerRoomSocket(socket: Socket) {
         const room = await createRoom(title, mode, resultMode, user, user.type);
 
         socket.join(room._id.toString());
+        // The host also joins a private room so live response stats reach them (guest or user).
+        socket.join(`${room._id.toString()}:admin`);
         socket.data.activeRoomId = room._id.toString();
 
         const members = await getRoomMembers(room._id)
@@ -157,10 +159,19 @@ export default function registerRoomSocket(socket: Socket) {
 
         await endRoom(roomId, user._id);
 
-        // Notify everyone the room is over.
+        // Notify everyone the room is over, with the final standings.
+        // The room is already ended, so a standings failure must not stop the notification.
+        let leaderboard;
+        try {
+          leaderboard = await getRoomLeaderboard(roomId);
+        } catch (e) {
+          console.error("leaderboard failed:", e);
+        }
+
         io.to(roomId).emit("room:ended", {
           message: "Room ended by host",
           roomId,
+          leaderboard,
         });
 
         // Detach every socket from the room and clear their active room id.

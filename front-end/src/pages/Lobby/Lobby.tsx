@@ -13,7 +13,7 @@ import { resetGame, setStatus } from "../../store/gameSlice";
 export default function Lobby() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { roomId, code, title, isHost, members, status } = useAppSelector(
+  const { roomId, code, title, isHost, mode, members, status } = useAppSelector(
     (s) => s.game,
   );
 
@@ -68,7 +68,9 @@ export default function Lobby() {
         {code && <RoomCodeBadge code={code} />}
         <p className="muted">
           {isHost
-            ? "Share this code with your players. Start whenever everyone is in."
+            ? mode === "live"
+              ? "Share this code with your players. After you start, you will enter each question one at a time."
+              : "Share this code with your players. Start whenever everyone is in."
             : "You are in! Sit tight while the host gets things going."}
         </p>
       </Card>

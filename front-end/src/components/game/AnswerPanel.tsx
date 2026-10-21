@@ -6,6 +6,7 @@ import Alert from "../ui/Alert/Alert";
 import OptionTile from "./OptionTile";
 import McqStatsPanel from "./McqStatsPanel";
 import { emitWithAck } from "../../lib/socket";
+import { useRemainingSeconds } from "../../lib/useRemainingSeconds";
 import { useAppDispatch, useAppSelector } from "../../store";
 import { setAnswered } from "../../store/gameSlice";
 import type { AnswerResult } from "../../types/game";
@@ -24,8 +25,15 @@ export default function AnswerPanel() {
 
 function AnswerPanelInner() {
   const dispatch = useAppDispatch();
-  const { roomId, currentQuestion: q, hasAnswered, lastAnswerResult, myMcqStats } =
-    useAppSelector((s) => s.game);
+  const {
+    roomId,
+    currentQuestion: q,
+    hasAnswered,
+    lastAnswerResult,
+    myMcqStats,
+    questionShownAt,
+  } = useAppSelector((s) => s.game);
+  const remaining = useRemainingSeconds(questionShownAt, q?.durationSeconds ?? 0);
 
   const [selected, setSelected] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -34,8 +42,11 @@ function AnswerPanelInner() {
 
   if (!q || !roomId) return null;
 
+  // Time ran out before an answer was sent: the question counts as not answered.
+  const timedOut = !hasAnswered && remaining === 0;
+
   async function submit(extra: { optionId: string } | { answer: string }) {
-    if (!q || !roomId || hasAnswered || submitting) return;
+    if (!q || !roomId || hasAnswered || submitting || timedOut) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -60,6 +71,18 @@ function AnswerPanelInner() {
     e.preventDefault();
     if (!text.trim()) return setError("Type an answer before submitting.");
     submit({ answer: text.trim() });
+  }
+
+  if (timedOut) {
+    return (
+      <div className="answer">
+        <div className="answer__result answer__result--wrong">
+          <span className="material-symbols-outlined">timer_off</span>
+          <span>Time is up - not answered (timed out)</span>
+        </div>
+        <p className="muted">Waiting for the next question…</p>
+      </div>
+    );
   }
 
   if (hasAnswered) {

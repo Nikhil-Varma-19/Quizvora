@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Card from "../ui/Card/Card";
 import Button from "../ui/Button/Button";
-import TextField from "../ui/TextField/TextField";
 import Alert from "../ui/Alert/Alert";
 import QuestionEditor from "./QuestionEditor";
 import {
@@ -10,6 +9,7 @@ import {
   validateDraft,
 } from "../../lib/questionDraft";
 import type { DraftQuestion } from "../../lib/questionDraft";
+import { QUESTION_SECONDS } from "../../lib/constants";
 import type { BulkQuestionCreatePayload } from "../../types/game";
 import "./game.css";
 
@@ -25,7 +25,6 @@ export default function QuestionBuilder({
   isSubmitting,
   submitError,
 }: QuestionBuilderProps) {
-  const [duration, setDuration] = useState(30);
   const [questions, setQuestions] = useState<DraftQuestion[]>([makeQuestion()]);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -37,7 +36,7 @@ export default function QuestionBuilder({
     setFormError(null);
     await onSubmit({
       noOfQuestion: questions.length,
-      questionDuration: duration,
+      questionDuration: QUESTION_SECONDS,
       questions: questions.map(toQuestionInput),
     });
   }
@@ -46,16 +45,9 @@ export default function QuestionBuilder({
     <div className="builder">
       <Card>
         <div className="builder__meta">
-          <div className="builder__duration">
-            <TextField
-              label="Seconds per question"
-              type="number"
-              min={0}
-              max={150}
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
-            />
-          </div>
+          <p className="muted">
+            Players get 1 minute to answer each question. Late answers are marked as not answered.
+          </p>
           <p className="muted">{questions.length} question(s) authored</p>
         </div>
       </Card>

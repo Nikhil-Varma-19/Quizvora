@@ -31,31 +31,32 @@ export default function answerSocket(socket: Socket) {
 				questionId: body.questionId,
 			});
 
-			// "perQuestion" mode surfaces stats live as each answer comes in.
-			// "atLast" mode stays silent until question:next reveals the final leaderboard.
-			if (resultMode === ResultMode.PerQuestion) {
-				if (questionType === TypeQuestion.Mcq) {
-					const stats = await getMcqStats(body.questionId);
+			// The admin sees live responses for every answer, whatever the result mode.
+			const adminRoom = `${body.roomId}:admin`;
+			const answeredByAdmin = socket.rooms.has(adminRoom);
+			const showPlayersStats = resultMode === ResultMode.PerQuestion;
 
-					socket.emit("question:stats", {
-						questionId: body.questionId,
-						type: TypeQuestion.Mcq,
-						...stats,
-					});
-				} else {
-					const answers = await getWrittenAnswers(body.questionId);
+			if (questionType === TypeQuestion.Mcq) {
+				const stats = await getMcqStats(body.questionId);
+				const payload = { questionId: body.questionId, type: TypeQuestion.Mcq, ...stats };
 
-					// Written answers are for the admin's eyes only, not broadcast to the room.
-					const adminSocketId = await redisGet(`${adminType === UserType.Guest ? "guest" : "user"}:${adminId}`);
+				// "perQuestion" mode also shows the answerer their own breakdown.
+				// "atLast" mode keeps players silent until question:next reveals the final leaderboard.
+				if (showPlayersStats) socket.emit("question:stats", payload);
 
-					if (adminSocketId) {
-						io.to(adminSocketId).emit("question:stats", {
-							questionId: body.questionId,
-							type: TypeQuestion.Written,
-							answers,
-						});
-					}
+				// Skip the admin when they just received it as the answerer.
+				if (!(showPlayersStats && answeredByAdmin)) {
+					io.to(adminRoom).emit("question:stats", payload);
 				}
+			} else {
+				const answers = await getWrittenAnswers(body.questionId);
+
+				// Written answers are for the admin's eyes only, not broadcast to the room.
+				io.to(adminRoom).emit("question:stats", {
+					questionId: body.questionId,
+					type: TypeQuestion.Written,
+					answers,
+				});
 			}
 
 		} catch (error) {

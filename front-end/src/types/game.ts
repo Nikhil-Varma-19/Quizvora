@@ -51,6 +51,7 @@ export interface Question {
   text: string;
   type: TypeQuestion;
   durationSeconds: number;
+  remainingSeconds?: number;
   options?: QuestionOption[];
 }
 
@@ -60,6 +61,10 @@ export interface RoomMember {
   role: "admin" | "member";
   participantType: UserType;
   participantId: { name: string };
+  /** Final standings only: questions answered, answered correctly, and timed out (0 pts). */
+  answered?: number;
+  correct?: number;
+  timedOut?: number;
 }
 
 export interface AnswerResult {

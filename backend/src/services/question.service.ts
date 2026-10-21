@@ -3,6 +3,7 @@ import { IGuestData, IUserData } from "../utils/types";
 import { NotFoundError, BadRequestError, InternalServerError, ConflictError } from "../utils/errors";
 import { ModePlay, QuestionStatus, Role, SessionStatus, TypeQuestion, UserType } from "../utils/enums";
 import { roomByIdAndCreatrdBy } from "./room.service";
+import { closeQuestion } from "./answer.service";
 
 export const createQuestion = async (body: any, user: IUserData | undefined | IGuestData, type: UserType | undefined, roomId: any) => {
 
@@ -42,8 +43,9 @@ export const createQuestion = async (body: any, user: IUserData | undefined | IG
 			type: item.type,
 		}
 
-		if (body.questionDurationSeconds > 0) {
-			res.durationSeconds = body.questionDurationSeconds;
+		const duration = body.questionDuration ?? body.questionDurationSeconds;
+		if (duration > 0) {
+			res.durationSeconds = duration;
 		}
 		if (item.type === TypeQuestion.Mcq) {
 			res.options = item.options.map((option: any) => {
@@ -129,7 +131,12 @@ export const createLiveQuestion = async (roomId: any, body: any, user: IUserData
 
 	const questionCount = await db.Questions.countDocuments({ roomId: roomId })
 
-	if (questionCount !== room.currentQuestionId) throw new ConflictError("Cannot post live question.")
+	const current = room.currentQuestionId
+		? await db.Questions.findOne({ _id: room.currentQuestionId, roomId })
+		: null
+
+	// The previous question must already be on screen before the next is queued.
+	if (questionCount !== (current ? current.order : 0)) throw new ConflictError("Cannot post live question.")
 
 	const bodydata = {
 		roomId: roomId,
@@ -137,7 +144,7 @@ export const createLiveQuestion = async (roomId: any, body: any, user: IUserData
 		text: body.question,
 		type: body.type,
 		options: body.options,
-		durationSeconds: body.durationSeconds || 30,
+		durationSeconds: body.durationSeconds || 60,
 		points: body.points || 1,
 	}
 
@@ -145,6 +152,9 @@ export const createLiveQuestion = async (roomId: any, body: any, user: IUserData
 
 	return result;
 
+}
+export const markQuestionStarted = async (questionId: any) => {
+	await db.Questions.updateOne({ _id: questionId }, { $set: { startedAt: new Date() } });
 }
 
 export const getCurrentQuestion = async (_id?: string, roomId?: string, order?: number) => {
@@ -157,10 +167,16 @@ export const getCurrentQuestion = async (_id?: string, roomId?: string, order?: 
 
 	if (order) whereClause.order = order
 
-	const question = await db.Questions.findOne(whereClause).sort({ order: 1 }).select("order text type point durationSeconds options isComplete status").lean();
+	const question = await db.Questions.findOne(whereClause).sort({ order: 1 }).select("order text type point durationSeconds startedAt options isComplete status").lean();
 
 	if (question) {
 		question.options = question.options?.map(({ isCorrect, ...option }: any) => option);
+
+		// Lets clients show the real time left (e.g. after a refresh) instead of restarting the clock.
+		if (question.startedAt) {
+			const elapsed = (Date.now() - new Date(question.startedAt).getTime()) / 1000;
+			question.remainingSeconds = Math.max(0, Math.ceil(question.durationSeconds - elapsed));
+		}
 	}
 
 	return question;
@@ -179,14 +195,19 @@ export const advanceQuestion = async (roomId: string, userId: string) => {
 
 	if (!room) throw new NotFoundError("Room not found or quiz is not running");
 
-	const currentQuestion = await db.Questions.findOne({ _id: room.currentQuestionId, roomId });
+	const currentQuestion = room.currentQuestionId
+		? await db.Questions.findOne({ _id: room.currentQuestionId, roomId })
+		: null;
 
-	if (!currentQuestion) throw new NotFoundError("Current question not found");
+	// A live room has no current question until its first one is shown.
+	if (!currentQuestion && room.mode !== ModePlay.live) throw new NotFoundError("Current question not found");
 
-	const nextQuestion = await db.Questions.findOne({ roomId, order: currentQuestion.order + 1 });
+	const nextQuestion = await db.Questions.findOne({ roomId, order: (currentQuestion?.order ?? 0) + 1 });
 
 	if (!nextQuestion) {
 		if (room.mode !== ModePlay.predefined) throw new BadRequestError("No next question created yet");
+
+		if (currentQuestion) await closeQuestion(roomId, currentQuestion._id);
 
 		room.status = SessionStatus.Ended;
 		room.endedAt = new Date();
@@ -195,8 +216,11 @@ export const advanceQuestion = async (roomId: string, userId: string) => {
 		return { finished: true };
 	}
 
+	if (currentQuestion) await closeQuestion(roomId, currentQuestion._id);
+
 	room.currentQuestionId = nextQuestion._id;
 	await room.save();
+	await markQuestionStarted(nextQuestion._id);
 
 	return { finished: false, question: nextQuestion };
 

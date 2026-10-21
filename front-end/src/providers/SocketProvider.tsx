@@ -2,12 +2,15 @@ import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router";
 import type { Socket } from "socket.io-client";
 import ConnectionBanner from "../components/game/ConnectionBanner";
+import { clearAuth, readAuth } from "../lib/auth";
 import { connectSocket, setSocketBinder } from "../lib/socket";
 import { store } from "../store";
+import { logout } from "../store/authSlice";
 import {
   setConnectionError,
   setLeaderboard,
   setMcqStats,
+  resetGame,
   setMembers,
   setRoomEnded,
   setStatus,
@@ -33,9 +36,23 @@ export default function SocketProvider() {
 
     function bind(socket: Socket) {
       socket.on("connect", () => dispatch(setConnectionError(null)));
-      socket.on("connect_error", (err: Error) =>
-        dispatch(setConnectionError(err.message || "Could not connect to the server.")),
-      );
+      socket.on("connect_error", (err: Error) => {
+        // The server rejected our identity (expired guest session, deleted
+        // account...): drop it and send the user to sign in again.
+        if (err.message === "Authentication failed") {
+          const wasUser = !!readAuth();
+          clearAuth();
+          dispatch(logout()); // also resets the socket
+          dispatch(resetGame());
+          dispatch(setConnectionError(null));
+          navigate(wasUser ? "/login" : "/join", {
+            replace: true,
+            state: { notice: "Your session expired. Please sign in again." },
+          });
+          return;
+        }
+        dispatch(setConnectionError(err.message || "Could not connect to the server."));
+      });
       socket.on("disconnect", (reason: string) => {
         if (reason === "io client disconnect") return;
         dispatch(setConnectionError("Disconnected from the server. Trying to reconnect…"));
@@ -58,8 +75,9 @@ export default function SocketProvider() {
         dispatch(setLeaderboard(p));
         navigate("/results");
       });
-      socket.on("room:ended", (p: { message: string }) => {
-        dispatch(setRoomEnded(p.message));
+      socket.on("room:ended", (p: { message: string; leaderboard?: RoomMember[] }) => {
+        if (p.leaderboard) dispatch(setLeaderboard({ leaderboard: p.leaderboard, message: p.message }));
+        else dispatch(setRoomEnded(p.message));
         navigate("/results");
       });
     }

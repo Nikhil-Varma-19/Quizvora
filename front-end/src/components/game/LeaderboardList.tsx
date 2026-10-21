@@ -24,7 +24,15 @@ export default function LeaderboardList({ members }: { members: RoomMember[] }) 
               idx + 1
             )}
           </span>
-          <span className="board__name">{m.participantId?.name ?? "Unknown"}</span>
+          <span className="board__name">
+            {m.participantId?.name ?? "Unknown"}
+            {m.answered !== undefined && (
+              <span className="board__detail">
+                {m.correct} correct · {m.answered} answered
+                {m.timedOut ? ` · ${m.timedOut} timed out (0 pts)` : ""}
+              </span>
+            )}
+          </span>
           <span className="board__score">{m.score} pts</span>
         </li>
       ))}

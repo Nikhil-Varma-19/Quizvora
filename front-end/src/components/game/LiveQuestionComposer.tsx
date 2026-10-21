@@ -11,21 +11,25 @@ import type { QuestionInput } from "../../types/game";
 import "./game.css";
 
 interface LiveQuestionComposerProps {
+  title: string;
+  buttonLabel: string;
+  /** Should reject on failure so the draft is kept for another try. */
   onCompose: (input: QuestionInput) => Promise<void>;
   isSubmitting: boolean;
 }
 
 /**
- * Live mode: authors the NEXT question. Composing does not show it to
- * players - the host still has to press "Next question" to reveal it.
+ * Live mode: authors one question at a time. Saving does not show it to
+ * players - the host still has to reveal it explicitly.
  */
 export default function LiveQuestionComposer({
+  title,
+  buttonLabel,
   onCompose,
   isSubmitting,
 }: LiveQuestionComposerProps) {
   const [draft, setDraft] = useState(makeQuestion);
   const [error, setError] = useState<string | null>(null);
-  const [composed, setComposed] = useState(false);
 
   async function handleCompose() {
     const invalid = validateDraft(draft, "Question");
@@ -33,7 +37,6 @@ export default function LiveQuestionComposer({
     setError(null);
     try {
       await onCompose(toQuestionInput(draft));
-      setComposed(true);
       setDraft(makeQuestion());
     } catch {
       // The parent surfaces the API error; keep the draft so nothing is lost.
@@ -42,28 +45,17 @@ export default function LiveQuestionComposer({
 
   return (
     <div className="composer">
-      <h3 className="composer__title">Compose next question</h3>
-      <QuestionEditor
-        question={draft}
-        onChange={(next) => {
-          setDraft(next);
-          setComposed(false);
-        }}
-      />
+      <h3 className="composer__title">{title}</h3>
+      <QuestionEditor question={draft} onChange={setDraft} />
       {error && <Alert message={error} />}
-      {composed && !error && (
-        <Alert tone="success" message='Next question composed. Click "Next question" to reveal it.' />
-      )}
       <Button
         type="button"
-        variant="secondary"
-        block={false}
-        icon="send"
+        icon="check"
         loading={isSubmitting}
-        loadingText="Composing..."
+        loadingText="Saving..."
         onClick={handleCompose}
       >
-        Compose next question
+        {buttonLabel}
       </Button>
     </div>
   );

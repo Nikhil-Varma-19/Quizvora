@@ -96,7 +96,12 @@ const gameSlice = createSlice({
     },
     showQuestion(state, { payload }: PayloadAction<Question>) {
       state.currentQuestion = payload;
-      state.questionShownAt = Date.now();
+      // Use the server's time left when given (refresh / late join), so the clock does not restart.
+      const elapsedSeconds =
+        payload.remainingSeconds === undefined
+          ? 0
+          : payload.durationSeconds - payload.remainingSeconds;
+      state.questionShownAt = Date.now() - elapsedSeconds * 1000;
       state.hasAnswered = false;
       state.lastAnswerResult = null;
       state.myMcqStats = null;
